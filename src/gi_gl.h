@@ -53,10 +53,10 @@
 
 #ifdef __APPLE__
 #include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
 #include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 
 #ifndef GL_CLAMP_VERTEX_COLOR
 #define GL_CLAMP_VERTEX_COLOR             0x891A
