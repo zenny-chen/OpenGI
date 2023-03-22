@@ -149,15 +149,17 @@ struct ModelBufferInfo
 {
     int vertexCount;
     int indexCount;
+    int normalCount;
     int vertexElemCount;
     int indexElemCount;
+    int normalElemCount;
 
     float* vertexBuffer;
     unsigned* indexBuffer;
 };
 
 // ==== read PLY2 file and store the data into the buffers ====
-static struct ModelBufferInfo CreateModelDataFromFile(const char* fileName)
+static struct ModelBufferInfo CreateModelDataFromPLY2File(const char* fileName)
 {
     FILE* pFile = fopen(fileName, "r");
     if (pFile == NULL)
@@ -236,7 +238,7 @@ static unsigned create_mesh(struct ModelBufferInfo *pModelBufferInfo)
 
     float v1[3], v2[3], n[3];
 
-    const float* pVertices = pModelBufferInfo->vertexBuffer;
+    float* pVertices = pModelBufferInfo->vertexBuffer;
     const unsigned* pIndices = pModelBufferInfo->indexBuffer;
     float* pNormals = calloc(iNumVertices, sizeof(float));
     if (pNormals == NULL) exit(-1);
@@ -468,7 +470,8 @@ int main(int argc, char* argv[])
     giErrorCallback(errorCB, NULL);
 
     puts("reading model file...");
-    struct ModelBufferInfo modelBufferInfo = CreateModelDataFromFile(argv[f]);
+    const char *modelFilePath = argv[f];
+    struct ModelBufferInfo modelBufferInfo = CreateModelDataFromPLY2File(argv[f]);
 
     puts("creating mesh...");
     uiMesh = create_mesh(&modelBufferInfo);
@@ -534,7 +537,7 @@ int main(int argc, char* argv[])
     }
     giDeleteImages(3, uiGIM);
     giDestroyContext(pContext);
-    glDeleteTextures(3, iTex);
+    glDeleteTextures(3, (GLuint*)iTex);
     return 0;
 }
 
