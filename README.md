@@ -87,6 +87,28 @@ UNIX (configure/make):
 
 <br />
 
+#### Build with CMake
+
+```bash
+cmake -DFREEGLUT_ROOT=<freeglut_dir> -S <src_dir> -B <build_dir> --install-prefix <install_dir>
+```
+
+`<src_dir>` is the root directory where you have stored this project, such as **`C:/Downloads/OpenGI-main`**.
+
+`<build_dir>` is the directory where you can build this project with Visual Studio, Makefile or Xcode, etc. For instance: **`C:/Downloads/OpenGI-main/build`**.
+
+`<install_dir>` is the directory where the project will generate the final executable, headers and the lib files. For instance: **`C:/Downloads/OpenGI-main/install`**.
+
+Here is a complete example:
+```bash
+cmake -DFREEGLUT_ROOT=C:/freeglut-3.2.2  -S C:/Downloads/OpenGI-main  -B C:/Downloads/OpenGI-main/build  --install-prefix C:/Downloads/OpenGI-main/install
+```
+
+On macOS, there's no need to install FreeGLUT library because the macOS SDK inside the Xcode has already contained GLUT.framework. This project will use the intrinsic GLUT.framework by default. So It is recommended that an Xcode project is generated.
+
+On Windows and macOS platforms, it is recommended to use CMake GUI. It'll be easy to setup the IDE environment.
+
+<br />
 
 Installation
 ------------
