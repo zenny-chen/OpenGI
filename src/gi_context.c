@@ -516,14 +516,14 @@ void GIAPIENTRY giDisableAttribArray(GIuint attrib)
  */
 void GIAPIENTRY giAttribPointer(GIuint attrib, GIint size, 
 								GIboolean normalized, GIsizei stride, 
-								const GIfloat *pointer)
+								GIfloat *pointer)
 {
 	GIContext *pContext = GIContext_current();
 
 	/* set data, if attribute valid */
 	if(attrib >= GI_ATTRIB_COUNT || size < 1 || size > 4)
 		GIContext_error(pContext, GI_INVALID_VALUE);
-	pContext->attrib_pointer[attrib] = (GIfloat*)pointer;
+	pContext->attrib_pointer[attrib] = pointer;
 	pContext->attrib_size[attrib] = size;
 	pContext->attrib_stride[attrib] = stride ? stride : size;
 	pContext->attrib_normalized[attrib] = normalized;
