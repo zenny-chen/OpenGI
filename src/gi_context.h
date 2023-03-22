@@ -33,7 +33,7 @@
 #define __GI_CONTEXT_H__
 
 #if HAVE_CONFIG_H
-	#include <config.h>
+    #include <config.h>
 #endif
 #include <GI/gi.h>
 
@@ -46,9 +46,9 @@
 #include "gi_gl.h"
 
 #ifdef OPENGI_DEBUG_OUTPUT
-	#define GIDebug(a)	a
+    #define GIDebug(a)	a
 #else
-	#define GIDebug(a)
+    #define GIDebug(a)
 #endif
 
 
@@ -74,33 +74,33 @@
  */
 typedef struct _GIContext
 {
-	GIHash			mesh_hash;							/**< Hash of meshes. */
-	GIHash			image_hash;							/**< Hash of images. */
-	GIMesh			*mesh;								/**< Current bound mesh. */
-	GIImage			*image;								/**< Current bound image. */
-	GIImage			*attrib_image[GI_ATTRIB_COUNT];		/**< Attribute images. */
-	GIuint			next_mid;							/**< ID of next created mesh. */
-	GIuint			next_iid;							/**< ID of next created image. */
-	GIboolean		use_threads;						/**< Use multithreading. */
-	GIfloat			*attrib_pointer[GI_ATTRIB_COUNT];	/**< Attribute pointers. */
-	GIsizei			attrib_size[GI_ATTRIB_COUNT];		/**< Size values for attribute pointers. */
-	GIsizei			attrib_stride[GI_ATTRIB_COUNT];		/**< Stride values for attribute pointers. */
-	GIenum			attrib_normalized[GI_ATTRIB_COUNT];	/**< Normalization flag fo attributes. */
-	GIboolean		attrib_enabled[GI_ATTRIB_COUNT];	/**< Enabled flags for attribute pointers. */
-	GIenum			attrib_semantic[GI_ATTRIB_COUNT];	/**< Semantics of attributes. */
-	GIuint			semantic[GI_SEMANTIC_COUNT];		/**< Attribute semantics. */
-	const GIuint	*subset[GI_SUBSET_COUNT];			/**< Vertex subsets. */
-	GIsizei			subset_count[GI_SUBSET_COUNT];		/**< Numbers of elements in vertex subsets. */
-	GIboolean		subset_sorted[GI_SUBSET_COUNT];		/**< Sorted flags for vertex subsets. */
-	GIboolean		subset_enabled[GI_SUBSET_COUNT];	/**< Enabled flags for vertex subsets. */
-	GIenum			error;								/**< Error code of last encountered error. */
-	GIerrorcb		error_cb;							/**< Error callback function. */
-	GIvoid			*edata;								/**< User data for error callback. */
-	GICutter		cutter;								/**< Cutting state. */
-	GIParameterizer	parameterizer;						/**< Parameterizer state. */
-	GISampler		sampler;							/**< Sampler state. */
-	GIRenderer		renderer;							/**< Render state. */
-	GIGLManager		*gl_manager;						/**< OpenGL manager. */
+    GIHash			mesh_hash;							/**< Hash of meshes. */
+    GIHash			image_hash;							/**< Hash of images. */
+    GIMesh			*mesh;								/**< Current bound mesh. */
+    GIImage			*image;								/**< Current bound image. */
+    GIImage			*attrib_image[GI_ATTRIB_COUNT];		/**< Attribute images. */
+    GIuint			next_mid;							/**< ID of next created mesh. */
+    GIuint			next_iid;							/**< ID of next created image. */
+    GIboolean		use_threads;						/**< Use multithreading. */
+    GIfloat*        attrib_pointer[GI_ATTRIB_COUNT];	/**< Attribute pointers. */
+    GIsizei			attrib_size[GI_ATTRIB_COUNT];		/**< Size values for attribute pointers. */
+    GIsizei			attrib_stride[GI_ATTRIB_COUNT];		/**< Stride values for attribute pointers. */
+    GIenum			attrib_normalized[GI_ATTRIB_COUNT];	/**< Normalization flag fo attributes. */
+    GIboolean		attrib_enabled[GI_ATTRIB_COUNT];	/**< Enabled flags for attribute pointers. */
+    GIenum			attrib_semantic[GI_ATTRIB_COUNT];	/**< Semantics of attributes. */
+    GIuint			semantic[GI_SEMANTIC_COUNT];		/**< Attribute semantics. */
+    GIuint*			subset[GI_SUBSET_COUNT];			/**< Vertex subsets. */
+    GIsizei			subset_count[GI_SUBSET_COUNT];		/**< Numbers of elements in vertex subsets. */
+    GIboolean		subset_sorted[GI_SUBSET_COUNT];		/**< Sorted flags for vertex subsets. */
+    GIboolean		subset_enabled[GI_SUBSET_COUNT];	/**< Enabled flags for vertex subsets. */
+    GIenum			error;								/**< Error code of last encountered error. */
+    GIerrorcb		error_cb;							/**< Error callback function. */
+    GIvoid			*edata;								/**< User data for error callback. */
+    GICutter		cutter;								/**< Cutting state. */
+    GIParameterizer	parameterizer;						/**< Parameterizer state. */
+    GISampler		sampler;							/**< Sampler state. */
+    GIRenderer		renderer;							/**< Render state. */
+    GIGLManager		*gl_manager;						/**< OpenGL manager. */
 } GIContext;
 
 
@@ -108,7 +108,7 @@ typedef struct _GIContext
 /* Functions */
 
 //#ifdef _DEBUG
-	GIContext* GIContext_current();
+    GIContext* GIContext_current();
 //#else
 //	extern GIContext *gi_CurrentContext;
 //	#define GIContext_current()		gi_CurrentContext;

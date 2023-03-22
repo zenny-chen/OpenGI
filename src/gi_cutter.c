@@ -2254,8 +2254,8 @@ GIboolean GIPatch_valid_parameterization(GIPatch *patch)
 		return GI_FALSE;
 
 	/* which direction? */
-	if(GIvec2d_dist_sqr(pParam->params, corner+2) > 
-		GIvec2d_dist_sqr(pParam->params, corner+6))
+	if(GIvec2d_dist_sqr(pParam->params, corner + 2) > 
+		GIvec2d_dist_sqr(pParam->params, corner + 6))
 	{
 		iInc = -1;
 		iMod = 1;

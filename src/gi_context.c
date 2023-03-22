@@ -399,7 +399,7 @@ void GIAPIENTRY giVertexSubset(GIenum subset, GIsizei count, GIboolean sorted, c
 
 	/* set subset data */
 	subset -= GI_SUBSET_BASE;
-	pContext->subset[subset] = indices;
+	pContext->subset[subset] = (GIuint*)indices;
 	pContext->subset_count[subset] = count;
 	pContext->subset_sorted[subset] = sorted;
 }
@@ -415,7 +415,7 @@ void GIAPIENTRY giGetPointerv(GIenum pname, GIvoid **params)
 
 	/* get pointer */
 	if(pname >= GI_SUBSET_BASE && pname <= GI_SUBSET_END)
-		*params = pContext->subset[pname-GI_SUBSET_BASE];
+		*params = (GIvoid*)pContext->subset[pname-GI_SUBSET_BASE];
 	else if(pname == GI_IMAGE_DATA)
 	{
 		if(!pContext->image)
@@ -516,14 +516,14 @@ void GIAPIENTRY giDisableAttribArray(GIuint attrib)
  */
 void GIAPIENTRY giAttribPointer(GIuint attrib, GIint size, 
 								GIboolean normalized, GIsizei stride, 
-								GIfloat *pointer)
+								const GIfloat *pointer)
 {
 	GIContext *pContext = GIContext_current();
 
 	/* set data, if attribute valid */
 	if(attrib >= GI_ATTRIB_COUNT || size < 1 || size > 4)
 		GIContext_error(pContext, GI_INVALID_VALUE);
-	pContext->attrib_pointer[attrib] = pointer;
+	pContext->attrib_pointer[attrib] = (GIfloat*)pointer;
 	pContext->attrib_size[attrib] = size;
 	pContext->attrib_stride[attrib] = stride ? stride : size;
 	pContext->attrib_normalized[attrib] = normalized;
@@ -656,7 +656,7 @@ void GIAPIENTRY giGetAttribPointerv(GIuint attrib, GIvoid **params)
 {
 	/* get pointer */
 	if(attrib < GI_ATTRIB_COUNT)
-		*params = GIContext_current()->attrib_pointer[attrib];
+		*params = (GIvoid*)GIContext_current()->attrib_pointer[attrib];
 	else
 		GIContext_error(GIContext_current(), GI_INVALID_VALUE);
 }
@@ -898,7 +898,7 @@ GIenum GIAPIENTRY giGetEnumValue(const GIchar *name)
 	}
 
 	/* return enum value */
-	return (GIuint)GIHash_find(&hEnumMap, name);
+	return (uintptr_t)GIHash_find(&hEnumMap, name);
 }
 
 /** \internal

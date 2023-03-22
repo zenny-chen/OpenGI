@@ -33,11 +33,12 @@
 #define __GI_MATH_H__
 
 #if HAVE_CONFIG_H
-	#include <config.h>
+    #include <config.h>
 #endif
 #include <GI/gi.h>
 
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <float.h>
 
@@ -55,22 +56,21 @@ extern const GIfloat g_platonic_v[50][3];
 #define GI_DODECAHEDRON			18
 #define GI_ICOSAHEDRON			38
 
-
-/*************************************************************************/
-/* Typedefs */
-
-/** \internal
- *  \brief single precision vectors and matrices.
- *  \ingroup math
- */
-typedef GIfloat *GIvec2f, *GIvec3f, *GImat3f, *GImat4f;
-
-/** \internal
- *  \brief double precision vectors and matrices.
- *  \ingroup math
- */
-typedef GIdouble *GIvec2d, *GIvec3d, *GImat3d, *GImat4d;
-
+#define GI_INFN		            0x7F800000
+#define GI_MAXN		            0x477FE000
+#define GI_MINN		            0x38800000
+#define GI_SIGNN		        0x80000000
+#define GI_INFC		            0x0003FC00
+#define GI_NANN		            0x7F802000
+#define GI_MAXC		            0x00023BFF
+#define GI_MINC		            0x0001C400
+#define GI_SIGNC		        0x00008000
+#define GI_MULN		            0x52000000
+#define GI_MULC		            0x33800000
+#define GI_SUBC		            0x000003FF
+#define GI_NORC		            0x00000400
+#define GI_MAXD		            0x0001C000
+#define GI_MIND		            0x0001C000
 
 /*************************************************************************/
 /* Macros */
@@ -176,7 +176,7 @@ typedef GIdouble *GIvec2d, *GIvec3d, *GImat3d, *GImat4d;
  *  \ingroup math
  */
 #define GI_TO_UPPER_POWER_OF_2(x)	--(x); (x)|=(x)>>1; (x)|=(x)>>2; (x)|=(x)>>4; \
-									(x)|=(x)>>8; (x)|=(x)>>16; ++(x)
+                                    (x)|=(x)>>8; (x)|=(x)>>16; ++(x)
 
 /** \internal
  *  \brief Set 2D vector.
@@ -327,16 +327,16 @@ typedef GIdouble *GIvec2d, *GIvec3d, *GImat3d, *GImat4d;
  *  \ingroup math
  */
 #define GI_VEC3_MIN(d,v,w)			(d)[0]=GI_MIN((v)[0],(w)[0]); \
-									(d)[1]=GI_MIN((v)[1],(w)[1]); \
-									(d)[2]=GI_MIN((v)[2],(w)[2])
+                                    (d)[1]=GI_MIN((v)[1],(w)[1]); \
+                                    (d)[2]=GI_MIN((v)[2],(w)[2])
 
 /** \internal
  *  \brief Maximum of two 3D vectors.
  *  \ingroup math
  */
 #define GI_VEC3_MAX(d,v,w)			(d)[0]=GI_MAX((v)[0],(w)[0]); \
-									(d)[1]=GI_MAX((v)[1],(w)[1]); \
-									(d)[2]=GI_MAX((v)[2],(w)[2])
+                                    (d)[1]=GI_MAX((v)[1],(w)[1]); \
+                                    (d)[2]=GI_MAX((v)[2],(w)[2])
 
 /** \internal
  *  \brief Dot product of 3D vectors.
@@ -361,8 +361,8 @@ typedef GIdouble *GIvec2d, *GIvec3d, *GImat3d, *GImat4d;
  *  \ingroup math
  */
 #define GI_VEC3_CROSS(d,v,w)		(d)[0]=(v)[1]*(w)[2]-(v)[2]*(w)[1]; \
-									(d)[1]=(v)[2]*(w)[0]-(v)[0]*(w)[2]; \
-									(d)[2]=(v)[0]*(w)[1]-(v)[1]*(w)[0]
+                                    (d)[1]=(v)[2]*(w)[0]-(v)[0]*(w)[2]; \
+                                    (d)[2]=(v)[0]*(w)[1]-(v)[1]*(w)[0]
 
 
 /*************************************************************************/
@@ -371,101 +371,929 @@ typedef GIdouble *GIvec2d, *GIvec3d, *GImat3d, *GImat4d;
 /** \name Half precision floating point methods
  *  \{
  */
-GIhalf GIhalf_from_float(GIfloat value);
-GIfloat GIhalf_to_float(GIhalf value);
+
+/** \internal
+ *  \brief Convert float to half.
+ *  \details http://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
+ *  \param value single precision floating point value
+ *  \return half precision floating point value
+ *  \ingroup math
+*/
+static inline GIhalf GIhalf_from_float(GIfloat value)
+{
+    GIint v = *(GIint*)&value, s = GI_MULN;
+    GIuint sign = v & GI_SIGNN;
+    v ^= sign;
+    sign >>= 16;
+    s = (*(GIfloat*)&s) * (*(GIfloat*)&v);
+    v ^= (s ^ v) & -(GI_MINN > v);
+    v ^= (GI_INFN ^ v) & -((GI_INFN > v) & (v > GI_MAXN));
+    v ^= (GI_NANN ^ v) & -((GI_NANN > v) & (v > GI_INFN));
+    *(GIuint*)&v >>= 13;
+    v ^= ((v - GI_MAXD) ^ v) & -(v > GI_MAXC);
+    v ^= ((v - GI_MIND) ^ v) & -(v > GI_SUBC);
+    return *(GIuint*)&v | sign;
+}
+
+/** \internal
+ *  \brief Convert half to float.
+ *  \details http://stackoverflow.com/questions/1659440/32-bit-to-16-bit-floating-point-conversion
+ *  \param value half precision floating point value
+ *  \return single precision floating point value
+ *  \ingroup math
+ */
+static inline GIfloat GIhalf_to_float(GIhalf value)
+{
+    GIint v = value, s = GI_MULC;
+    GIint sign = v & GI_SIGNC, mask;
+    v ^= sign;
+    sign <<= 16;
+    v ^= ((v + GI_MIND) ^ v) & -(v > GI_SUBC);
+    v ^= ((v + GI_MAXD) ^ v) & -(v > GI_MAXC);
+    *(GIfloat*)&s *= v;
+    mask = -(GI_NORC > v);
+    v <<= 13;
+    v ^= (s ^ v) & mask;
+    v |= sign;
+    return *(GIfloat*)&v;
+}
 /** \} */
 
 /** \name Single precision 2D vector methods
  *  \{
  */
-void GIvec2f_set(GIvec2f d, GIfloat x, GIfloat y);
-void GIvec2f_copy(GIvec2f d, const GIvec2f s);
-GIboolean GIvec2f_equal(const GIvec2f v, const GIvec2f w);
-void GIvec2f_add(GIvec2f d, const GIvec2f v, const GIvec2f w);
-void GIvec2f_sub(GIvec2f d, const GIvec2f v, const GIvec2f w);
-void GIvec2f_scale(GIvec2f d, const GIvec2f v, GIfloat s);
-void GIvec2f_add_scaled(GIvec2f d, const GIvec2f v, const GIvec2f w, GIfloat s);
-void GIvec2f_negate(GIvec2f d, const GIvec2f s);
-void GIvec2f_round(GIvec2f d, const GIvec2f s);
-void GIvec2f_min(GIvec2f d, const GIvec2f v, const GIvec2f w);
-void GIvec2f_max(GIvec2f d, const GIvec2f v, const GIvec2f w);
-GIfloat GIvec2f_length(const GIvec2f v);
-GIfloat GIvec2f_length_sqr(const GIvec2f v);
-GIfloat GIvec2f_dist(const GIvec2f v, const GIvec2f w);
-GIfloat GIvec2f_dist_sqr(const GIvec2f v, const GIvec2f w);
-void GIvec2f_normalize(GIvec2f v);
-GIfloat GIvec2f_dot(const GIvec2f v, const GIvec2f w);
-GIfloat GIvec2f_det(const GIvec2f v, const GIvec2f w);
+
+/** \internal
+ *  \brief Set 2D vector.
+ *  \param d vector to set
+ *  \param x x coordinate to set
+ *  \param y y coordinate to set
+ *  \ingroup math
+ */
+static inline void GIvec2f_set(GIfloat d[2], GIfloat x, GIfloat y)
+{
+    GI_VEC2_SET(d, x, y);
+}
+
+/** \internal
+ *  \brief Copy 2D vector.
+ *  \param d vector take copy
+ *  \param s vector to copy from
+ *  \ingroup math
+ */
+static inline void GIvec2f_copy(GIfloat d[2], const GIfloat s[2])
+{
+    GI_VEC2_COPY(d, s);
+}
+
+/** \internal
+ *  \brief compare 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \retval GI_TRUE if equal
+ *  \retval GI_FALSE if not equal
+ *  \ingroup math
+ */
+static inline GIboolean GIvec2f_equal(const GIfloat v[2], const GIfloat w[2])
+{
+    return GI_VEC2_EQUAL(v, w);
+}
+
+/** \internal
+ *  \brief Sum of 2D vectors.
+ *  \param d vector to store sum \a v + \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2f_add(GIfloat d[2], const GIfloat v[2], const GIfloat w[2])
+{
+    GI_VEC2_ADD(d, v, w);
+}
+
+/** \internal
+ *  \brief Difference of 2D vectors.
+ *  \param d vector to store difference \a v - \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2f_sub(GIfloat d[2], const GIfloat v[2], const GIfloat w[2])
+{
+    GI_VEC2_SUB(d, v, w);
+}
+
+/** \internal
+ *  \brief Scale 2D vector.
+ *  \param d vector to store scaled vector
+ *  \param v vector to scale
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec2f_scale(GIfloat d[2], const GIfloat v[2], GIfloat s)
+{
+    GI_VEC2_SCALE(d, v, s);
+}
+
+/** \internal
+ *  \brief Negate 2D vector.
+ *  \param d vector to store negative vector
+ *  \param s vector to negate
+ *  \ingroup math
+ */
+static inline void GIvec2f_negate(GIfloat d[2], const GIfloat s[2])
+{
+    GI_VEC2_NEGATE(d, s);
+}
+
+/** \internal
+ *  \brief Round 2D vector.
+ *  \param d vector to store rounded vector
+ *  \param s vector to round
+ *  \ingroup math
+ */
+static inline void GIvec2f_round(GIfloat d[2], const GIfloat s[2])
+{
+    GI_VEC2_ROUND(d, s);
+}
+
+/** \internal
+ *  \brief Component-wise minimum of two 2D vectors.
+ *  \param d vector to store minimum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2f_min(GIfloat d[2], const GIfloat v[2], const GIfloat w[2])
+{
+    GI_VEC2_MIN(d, v, w);
+}
+
+/** \internal
+ *  \brief Component-wise maximum of two 2D vectors.
+ *  \param d vector to store maximum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2f_max(GIfloat d[2], const GIfloat v[2], const GIfloat w[2])
+{
+    GI_VEC2_MAX(d, v, w);
+}
+
+/** \internal
+ *  \brief Length of 2D vector.
+ *  \param v vector
+ *  \return eucildean norm of vector sqrt(<\a v,\a v>)
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_length(const GIfloat v[2])
+{
+    return GI_VEC2_LENGTH(v);
+}
+
+/** \internal
+ *  \brief Squared length of 2D vector.
+ *  \param v vector
+ *  \return squared euclidean norm of vector <\a v,\a v>
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_length_sqr(const GIfloat v[2])
+{
+    return GI_VEC2_LENGTH_SQR(v);
+}
+
+/** \internal
+ *  \brief Distance between 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_dist(const GIfloat v[2], const GIfloat w[2])
+{
+    GIfloat vec[2];
+    GI_VEC2_SUB(vec, w, v);
+    return GI_VEC2_LENGTH(vec);
+}
+
+/** \internal
+ *  \brief Squared distance between 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return squared euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_dist_sqr(const GIfloat v[2], const GIfloat w[2])
+{
+    GIfloat vec[2];
+    GI_VEC2_SUB(vec, w, v);
+    return GI_VEC2_LENGTH_SQR(vec);
+}
+
+/** \internal
+ *  \brief Normalize 2D vector.
+ *  \param v vector to normalize
+ *  \ingroup math
+ */
+static inline void GIvec2f_normalize(GIfloat v[2])
+{
+    GIfloat fInvNorm = 1.0f / GI_VEC2_LENGTH(v);
+    v[0] *= fInvNorm; v[1] *= fInvNorm;
+}
+
+/** \internal
+ *  \brief Dot product of 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product <\a v,\a w>
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_dot(const GIfloat v[2], const GIfloat w[2])
+{
+    return GI_VEC2_DOT(v, w);
+}
+
+/** \internal
+ *  \brief Cross product equivalent of 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product det(\a v,\a w)
+ *  \ingroup math
+ */
+static inline GIfloat GIvec2f_det(const GIfloat v[2], const GIfloat w[2])
+{
+    return GI_VEC2_DET(v, w);
+}
 /** \} */
 
 /** \name Double precision 2D vector methods
  *  \{
  */
-void GIvec2d_set(GIvec2d d, GIdouble x, GIdouble y);
-void GIvec2d_copy(GIvec2d d, const GIvec2d s);
-GIboolean GIvec2d_equal(const GIvec2d v, const GIvec2d w);
-void GIvec2d_add(GIvec2d d, const GIvec2d v, const GIvec2d w);
-void GIvec2d_sub(GIvec2d d, const GIvec2d v, const GIvec2d w);
-void GIvec2d_scale(GIvec2d d, const GIvec2d v, GIdouble s);
-void GIvec2d_add_scaled(GIvec2d d, const GIvec2d v, const GIvec2d w, GIdouble s);
-void GIvec2d_negate(GIvec2d d, const GIvec2d s);
-void GIvec2d_round(GIvec2d d, const GIvec2d s);
-void GIvec2d_min(GIvec2d d, const GIvec2d v, const GIvec2d w);
-void GIvec2d_max(GIvec2d d, const GIvec2d v, const GIvec2d w);
-GIdouble GIvec2d_length(const GIvec2d v);
-GIdouble GIvec2d_length_sqr(const GIvec2d v);
-GIdouble GIvec2d_dist(const GIvec2d v, const GIvec2d w);
-GIdouble GIvec2d_dist_sqr(const GIvec2d v, const GIvec2d w);
-void GIvec2d_normalize(GIvec2d v);
-GIdouble GIvec2d_dot(const GIvec2d v, const GIvec2d w);
-GIdouble GIvec2d_det(const GIvec2d v, const GIvec2d w);
+
+/** \internal
+ *  \brief Set 2D vector.
+ *  \param d vector to set
+ *  \param x x coordinate to set
+ *  \param y y coordinate to set
+ *  \ingroup math
+ */
+static inline void GIvec2d_set(GIdouble d[2], GIdouble x, GIdouble y)
+{
+	GI_VEC2_SET(d, x, y);
+}
+
+/** \internal
+ *  \brief Copy 2D vector.
+ *  \param d vector take copy
+ *  \param s vector to copy from
+ *  \ingroup math
+ */
+static inline void GIvec2d_copy(GIdouble d[2], const GIdouble s[2])
+{
+    GI_VEC2_COPY(d, s);
+}
+
+/** \internal
+ *  \brief compare 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \retval GI_TRUE if equal
+ *  \retval GI_FALSE if not equal
+ *  \ingroup math
+ */
+static inline GIboolean GIvec2d_equal(const GIdouble v[2], const GIdouble w[2])
+{
+    return GI_VEC2_EQUAL(v, w);
+}
+
+/** \internal
+ *  \brief Sum of 2D vectors.
+ *  \param d vector to store sum \a v + \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2d_add(GIdouble d[2], const GIdouble v[2], const GIdouble w[2])
+{
+    GI_VEC2_ADD(d, v, w);
+}
+
+/** \internal
+ *  \brief Difference of 2D vectors.
+ *  \param d vector to store difference \a v - \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2d_sub(GIdouble d[2], const GIdouble v[2], const GIdouble w[2])
+{
+    GI_VEC2_SUB(d, v, w);
+}
+
+/** \internal
+ *  \brief Scale 2D vector.
+ *  \param d vector to store scaled vector
+ *  \param v vector to scale
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec2d_scale(GIdouble d[2], const GIdouble v[2], GIdouble s)
+{
+    GI_VEC2_SCALE(d, v, s);
+}
+
+/** \internal
+ *  \brief Add scaled 2D vector to other vector.
+ *  \param d vector to store sum \a v + \a s*w
+ *  \param v first vector
+ *  \param w second vector (to be scaled)
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec2d_add_scaled(GIdouble d[2], const GIdouble v[2], const GIdouble w[2], GIdouble s)
+{
+    GI_VEC2_ADD_SCALED(d, v, w, s);
+}
+
+/** \internal
+ *  \brief Negate 2D vector.
+ *  \param d vector to store negative vector
+ *  \param s vector to negate
+ *  \ingroup math
+ */
+static inline void GIvec2d_negate(GIdouble d[2], const GIdouble s[2])
+{
+    GI_VEC2_NEGATE(d, s);
+}
+
+/** \internal
+ *  \brief Round 2D vector.
+ *  \param d vector to store rounded vector
+ *  \param s vector to round
+ *  \ingroup math
+ */
+static inline void GIvec2d_round(GIdouble d[2], const GIdouble s[2])
+{
+    GI_VEC2_ROUND(d, s);
+}
+
+/** \internal
+ *  \brief Component-wise minimum of two 2D vectors.
+ *  \param d vector to store minimum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2d_min(GIdouble d[2], const GIdouble v[2], const GIdouble w[2])
+{
+    GI_VEC2_MIN(d, v, w);
+}
+
+/** \internal
+ *  \brief Component-wise maximum of two 2D vectors.
+ *  \param d vector to store maximum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec2d_max(GIdouble d[2], const GIdouble v[2], const GIdouble w[2])
+{
+    GI_VEC2_MAX(d, v, w);
+}
+
+/** \internal
+ *  \brief Length of 2D vector.
+ *  \param v vector
+ *  \return eucildean norm of vector sqrt(<\a v,\a v>)
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_length(const GIdouble v[2])
+{
+    return GI_VEC2_LENGTH(v);
+}
+
+/** \internal
+ *  \brief Squared length of 2D vector.
+ *  \param v vector
+ *  \return squared euclidean norm of vector <\a v,\a v>
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_length_sqr(const GIdouble v[2])
+{
+    return GI_VEC2_LENGTH_SQR(v);
+}
+
+/** \internal
+ *  \brief Distance between 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return Euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_dist(const GIdouble v[2], const GIdouble w[2])
+{
+    GIdouble vec[2];
+    GI_VEC2_SUB(vec, w, v);
+    return GI_VEC2_LENGTH(vec);
+}
+
+/** \internal
+ *  \brief Squared distance between 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return squared euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_dist_sqr(const GIdouble v[2], const GIdouble w[2])
+{
+    GIdouble vec[2];
+    GI_VEC2_SUB(vec, w, v);
+    return GI_VEC2_LENGTH_SQR(vec);
+}
+
+/** \internal
+ *  \brief Normalize 2D vector.
+ *  \param v vector to normalize
+ *  \ingroup math
+ */
+static inline void GIvec2d_normalize(GIdouble v[2])
+{
+    GIdouble dInvNorm = 1.0f / GI_VEC2_LENGTH(v);
+    v[0] *= dInvNorm; v[1] *= dInvNorm;
+}
+
+/** \internal
+ *  \brief Dot product of 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product <\a v,\a w>
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_dot(const GIdouble v[2], const GIdouble w[2])
+{
+    return GI_VEC2_DOT(v, w);
+}
+
+/** \internal
+ *  \brief Cross product equivalent of 2D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product det(\a v,\a w)
+ *  \ingroup math
+ */
+static inline GIdouble GIvec2d_det(const GIdouble v[2], const GIdouble w[2])
+{
+    return GI_VEC2_DET(v, w);
+}
+
 /** \} */
 
 /** \name Single precision 3D vector methods
  *  \{
  */
-void GIvec3f_set(GIvec3f d, GIfloat x, GIfloat y, GIfloat z);
-void GIvec3f_copy(GIvec3f d, const GIvec3f s);
-GIboolean GIvec3f_equal(const GIvec3f v, const GIvec3f w);
-void GIvec3f_add(GIvec3f d, const GIvec3f v, const GIvec3f w);
-void GIvec3f_sub(GIvec3f d, const GIvec3f v, const GIvec3f w);
-void GIvec3f_scale(GIvec3f d, const GIvec3f v, GIfloat s);
-void GIvec3f_add_scaled(GIvec3f d, const GIvec3f v, const GIvec3f w, GIfloat s);
-void GIvec3f_negate(GIvec3f d, const GIvec3f s);
-void GIvec3f_round(GIvec3f d, const GIvec3f s);
-void GIvec3f_min(GIvec3f d, const GIvec3f v, const GIvec3f w);
-void GIvec3f_max(GIvec3f d, const GIvec3f v, const GIvec3f w);
-GIfloat GIvec3f_length(const GIvec3f v);
-GIfloat GIvec3f_length_sqr(const GIvec3f v);
-GIfloat GIvec3f_dist(const GIvec3f v, const GIvec3f w);
-GIfloat GIvec3f_dist_sqr(const GIvec3f v, const GIvec3f w);
-void GIvec3f_normalize(GIvec3f v);
-GIfloat GIvec3f_dot(const GIvec3f v, const GIvec3f w);
-void GIvec3f_cross(GIvec3f d, const GIvec3f v, const GIvec3f w);
+
+/** \internal
+ *  \brief Set 3D vector.
+ *  \param d vector to set
+ *  \param x x coordinate to set
+ *  \param y y coordinate to set
+ *  \param z z coordinate to set
+ *  \ingroup math
+ */
+static inline void GIvec3f_set(GIfloat d[3], GIfloat x, GIfloat y, GIfloat z)
+{
+    GI_VEC3_SET(d, x, y, z);
+}
+
+/** \internal
+ *  \brief Copy 3D vector.
+ *  \param d vector take copy
+ *  \param s vector to copy from
+ *  \ingroup math
+ */
+static inline void GIvec3f_copy(GIfloat d[3], const GIfloat s[3])
+{
+    GI_VEC3_COPY(d, s);
+}
+
+/** \internal
+ *  \brief compare 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \retval GI_TRUE if equal
+ *  \retval GI_FALSE if not equal
+ *  \ingroup math
+ */
+static inline GIboolean GIvec3f_equal(const GIfloat v[3], const GIfloat w[3])
+{
+    return GI_VEC3_EQUAL(v, w);
+}
+
+/** \internal
+ *  \brief Sum of 3D vectors.
+ *  \param d vector to store sum \a v + \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3f_add(GIfloat d[3], const GIfloat v[3], const GIfloat w[3])
+{
+    GI_VEC3_ADD(d, v, w);
+}
+
+/** \internal
+ *  \brief Difference of 3D vectors.
+ *  \param d vector to store difference \a v - \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3f_sub(GIfloat d[3], const GIfloat v[3], const GIfloat w[3])
+{
+    GI_VEC3_SUB(d, v, w);
+}
+
+/** \internal
+ *  \brief Scale 3D vector.
+ *  \param d vector to store scaled vector
+ *  \param v vector to scale
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec3f_scale(GIfloat d[3], const GIfloat v[3], GIfloat s)
+{
+    GI_VEC3_SCALE(d, v, s);
+}
+
+/** \internal
+ *  \brief Add scaled 3D vector to other vector.
+ *  \param d vector to store sum \a v + \a s*w
+ *  \param v first vector
+ *  \param w second vector (to be scaled)
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec3f_add_scaled(GIfloat d[3], const GIfloat v[3], const GIfloat w[3], GIfloat s)
+{
+    GI_VEC3_ADD_SCALED(d, v, w, s);
+}
+
+/** \internal
+ *  \brief Negate 3D vector.
+ *  \param d vector to store negative vector
+ *  \param s vector to negate
+ *  \ingroup math
+ */
+static inline void GIvec3f_negate(GIfloat d[3], const GIfloat s[3])
+{
+    GI_VEC3_NEGATE(d, s);
+}
+
+/** \internal
+ *  \brief Round 3D vector.
+ *  \param d vector to store rounded vector
+ *  \param s vector to round
+ *  \ingroup math
+ */
+static inline void GIvec3f_round(GIfloat d[3], const GIfloat s[3])
+{
+    GI_VEC3_ROUND(d, s);
+}
+
+/** \internal
+ *  \brief Component-wise minimum of two 3D vectors.
+ *  \param d vector to store minimum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3f_min(GIfloat d[3], const GIfloat v[3], const GIfloat w[3])
+{
+    GI_VEC3_MIN(d, v, w);
+}
+
+/** \internal
+ *  \brief Component-wise maximum of two 3D vectors.
+ *  \param d vector to store maximum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3f_max(GIfloat d[3], const GIfloat v[3], const GIfloat w[3])
+{
+    GI_VEC3_MAX(d, v, w);
+}
+
+/** \internal
+ *  \brief Length of 3D vector.
+ *  \param v vector
+ *  \return eucildean norm of vector sqrt(<\a v,\a v>)
+ *  \ingroup math
+ */
+static inline GIfloat GIvec3f_length(const GIfloat v[3])
+{
+    return GI_VEC3_LENGTH(v);
+}
+
+/** \internal
+ *  \brief Squared length of 3D vector.
+ *  \param v vector
+ *  \return squared euclidean norm of vector <\a v,\a v>
+ *  \ingroup math
+ */
+static inline GIfloat GIvec3f_length_sqr(const GIfloat v[3])
+{
+    return GI_VEC3_LENGTH_SQR(v);
+}
+
+/** \internal
+ *  \brief Distance between 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return Euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIfloat GIvec3f_dist(const GIfloat v[3], const GIfloat w[3])
+{
+    GIfloat vec[3];
+    GI_VEC3_SUB(vec, w, v);
+    return GI_VEC3_LENGTH(vec);
+}
+
+/** \internal
+ *  \brief Squared distance between 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return squared euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIfloat GIvec3f_dist_sqr(const GIfloat v[3], const GIfloat w[3])
+{
+    GIfloat vec[3];
+    GI_VEC3_SUB(vec, w, v);
+    return GI_VEC3_LENGTH_SQR(vec);
+}
+
+/** \internal
+ *  \brief Normalize 3D vector.
+ *  \param v vector to normalize
+ *  \ingroup math
+ */
+static inline void GIvec3f_normalize(GIfloat v[3])
+{
+    GIfloat fInvNorm = 1.0f / GI_VEC3_LENGTH(v);
+    v[0] *= fInvNorm; v[1] *= fInvNorm; v[2] *= fInvNorm;
+}
+
+/** \internal
+ *  \brief Dot product of 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product <\a v,\a w>
+ *  \ingroup math
+ */
+static inline GIfloat GIvec3f_dot(const GIfloat v[3], const GIfloat w[3])
+{
+    return GI_VEC3_DOT(v, w);
+}
+
+/** \internal
+ *  \brief Cross product of 3D vectors.
+ *  \param d vector to store cross product \a v x \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3f_cross(GIfloat d[3], const GIfloat v[3], const GIfloat w[3])
+{
+    GI_VEC3_CROSS(d, v, w);
+}
+
 /** \{ */
 
 /** \name Double precision 3D vector methods
  *  \{
  */
-void GIvec3d_set(GIvec3d d, GIdouble x, GIdouble y, GIdouble z);
-void GIvec3d_copy(GIvec3d d, const GIvec3d s);
-GIboolean GIvec3d_equal(const GIvec3d v, const GIvec3d w);
-void GIvec3d_add(GIvec3d d, const GIvec3d v, const GIvec3d w);
-void GIvec3d_sub(GIvec3d d, const GIvec3d v, const GIvec3d w);
-void GIvec3d_scale(GIvec3d d, const GIvec3d v, GIdouble s);
-void GIvec3d_add_scaled(GIvec3d d, const GIvec3d v, const GIvec3d w, GIdouble s);
-void GIvec3d_negate(GIvec3d d, const GIvec3d s);
-void GIvec3d_round(GIvec3d d, const GIvec3d s);
-void GIvec3d_min(GIvec3d d, const GIvec3d v, const GIvec3d w);
-void GIvec3d_max(GIvec3d d, const GIvec3d v, const GIvec3d w);
-GIdouble GIvec3d_length(const GIvec3d v);
-GIdouble GIvec3d_length_sqr(const GIvec3d v);
-GIdouble GIvec3d_dist(const GIvec3d v, const GIvec3d w);
-GIdouble GIvec3d_dist_sqr(const GIvec3d v, const GIvec3d w);
-void GIvec3d_normalize(GIvec3d v);
-GIdouble GIvec3d_dot(const GIvec3d v, const GIvec3d w);
-void GIvec3d_cross(GIvec3d d, const GIvec3d v, const GIvec3d w);
+
+/** \internal
+ *  \brief Set 3D vector.
+ *  \param d vector to set
+ *  \param x x coordinate to set
+ *  \param y y coordinate to set
+ *  \param z z coordinate to set
+ *  \ingroup math
+ */
+static inline void GIvec3d_set(GIdouble d[3], GIdouble x, GIdouble y, GIdouble z)
+{
+	GI_VEC3_SET(d, x, y, z);
+}
+
+/** \internal
+ *  \brief Copy 3D vector.
+ *  \param d vector take copy
+ *  \param s vector to copy from
+ *  \ingroup math
+ */
+static inline void GIvec3d_copy(GIdouble d[3], const GIdouble s[3])
+{
+    GI_VEC3_COPY(d, s);
+}
+
+/** \internal
+ *  \brief compare 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \retval GI_TRUE if equal
+ *  \retval GI_FALSE if not equal
+ *  \ingroup math
+ */
+static inline GIboolean GIvec3d_equal(const GIdouble v[3], const GIdouble w[3])
+{
+    return GI_VEC3_EQUAL(v, w);
+}
+
+/** \internal
+ *  \brief Sum of 3D vectors.
+ *  \param d vector to store sum \a v + \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3d_add(GIdouble d[3], const GIdouble v[3], const GIdouble w[3])
+{
+    GI_VEC3_ADD(d, v, w);
+}
+
+/** \internal
+ *  \brief Difference of 3D vectors.
+ *  \param d vector to store difference \a v - \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3d_sub(GIdouble d[3], const GIdouble v[3], const GIdouble w[3])
+{
+    GI_VEC3_SUB(d, v, w);
+}
+
+/** \internal
+ *  \brief Scale 3D vector.
+ *  \param d vector to store scaled vector
+ *  \param v vector to scale
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec3d_scale(GIdouble d[3], const GIdouble v[3], GIdouble s)
+{
+    GI_VEC3_SCALE(d, v, s);
+}
+
+/** \internal
+ *  \brief Add scaled 3D vector to other vector.
+ *  \param d vector to store sum \a v + \a s*w
+ *  \param v first vector
+ *  \param w second vector (to be scaled)
+ *  \param s scalar value
+ *  \ingroup math
+ */
+static inline void GIvec3d_add_scaled(GIdouble d[3], const GIdouble v[3], const GIdouble w[3], GIdouble s)
+{
+    GI_VEC3_ADD_SCALED(d, v, w, s);
+}
+
+/** \internal
+ *  \brief Negate 3D vector.
+ *  \param d vector to store negative vector
+ *  \param s vector to negate
+ *  \ingroup math
+ */
+static inline void GIvec3d_negate(GIdouble d[3], const GIdouble s[3])
+{
+    GI_VEC3_NEGATE(d, s);
+}
+
+/** \internal
+ *  \brief Round 3D vector.
+ *  \param d vector to store rounded vector
+ *  \param s vector to round
+ *  \ingroup math
+ */
+static inline void GIvec3d_round(GIdouble d[3], const GIdouble s[3])
+{
+    GI_VEC3_ROUND(d, s);
+}
+
+/** \internal
+ *  \brief Component-wise minimum of two 3D vectors.
+ *  \param d vector to store minimum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3d_min(GIdouble d[3], const GIdouble v[3], const GIdouble w[3])
+{
+    GI_VEC3_MIN(d, v, w);
+}
+
+/** \internal
+ *  \brief Component-wise maximum of two 3D vectors.
+ *  \param d vector to store maximum vector
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3d_max(GIdouble d[3], const GIdouble v[3], const GIdouble w[3])
+{
+    GI_VEC3_MAX(d, v, w);
+}
+
+/** \internal
+ *  \brief Length of 3D vector.
+ *  \param v vector
+ *  \return eucildean norm of vector sqrt(<\a v,\a v>)
+ *  \ingroup math
+ */
+static inline GIdouble GIvec3d_length(const GIdouble v[3])
+{
+    return GI_VEC3_LENGTH(v);
+}
+
+/** \internal
+ *  \brief Squared length of 3D vector.
+ *  \param v vector
+ *  \return squared euclidean norm of vector <\a v,\a v>
+ *  \ingroup math
+ */
+static inline GIdouble GIvec3d_length_sqr(const GIdouble v[3])
+{
+    return GI_VEC3_LENGTH_SQR(v);
+}
+
+/** \internal
+ *  \brief Distance between 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return Euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIdouble GIvec3d_dist(const GIdouble v[3], const GIdouble w[3])
+{
+    GIdouble vec[3];
+    GI_VEC3_SUB(vec, w, v);
+    return GI_VEC3_LENGTH(vec);
+}
+
+/** \internal
+ *  \brief Squared distance between 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return squared euclidean distance between vectors
+ *  \ingroup math
+ */
+static inline GIdouble GIvec3d_dist_sqr(const GIdouble v[3], const GIdouble w[3])
+{
+    GIdouble vec[3];
+    GI_VEC3_SUB(vec, w, v);
+    return GI_VEC3_LENGTH_SQR(vec);
+}
+
+/** \internal
+ *  \brief Normalize 3D vector.
+ *  \param v vector to normalize
+ *  \ingroup math
+ */
+static inline void GIvec3d_normalize(GIdouble v[3])
+{
+    GIdouble dInvNorm = 1.0f / GI_VEC3_LENGTH(v);
+    v[0] *= dInvNorm; v[1] *= dInvNorm; v[2] *= dInvNorm;
+}
+
+/** \internal
+ *  \brief Dot product of 3D vectors.
+ *  \param v first vector
+ *  \param w second vector
+ *  \return dot product <\a v,\a w>
+ *  \ingroup math
+ */
+static inline GIdouble GIvec3d_dot(const GIdouble v[3], const GIdouble w[3])
+{
+    return GI_VEC3_DOT(v, w);
+}
+
+/** \internal
+ *  \brief Cross product of 3D vectors.
+ *  \param d vector to store cross product \a v x \a w
+ *  \param v first vector
+ *  \param w second vector
+ *  \ingroup math
+ */
+static inline void GIvec3d_cross(GIdouble d[3], const GIdouble v[3], const GIdouble w[3])
+{
+    GI_VEC3_CROSS(d, v, w);
+}
+
 /** \{ */
 
-
 #endif
+
