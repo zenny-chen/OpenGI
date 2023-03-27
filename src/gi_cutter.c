@@ -178,35 +178,43 @@ void GIAPIENTRY giCutterParameterf(GIenum pname, GIfloat param)
     }
 }
 #endif
+
 /** Cut current mesh.
  *  This function cuts the current bound mesh into one or more topological disks.
  *  \ingroup cutting
+ *  \return number of created patches (0 on error)
  */
-void GIAPIENTRY giCut()
+GIint GIAPIENTRY giCut(void)
 {
     GICutter *pCutter = &(GIContext_current()->cutter);
     GIMesh *pMesh = pCutter->context->mesh;
 
     /* error checking */
-    if(!pMesh)
+    if(pMesh == NULL)
     {
         GIContext_error(pCutter->context, GI_INVALID_OPERATION);
-        return;
+        return 0;
     }
     GIMesh_destroy_cut(pMesh);
+
+    GIint result = 0;
 
     /* select algorithm and cut */
     switch(pCutter->cutter)
     {
     case GI_INITIAL_GIM:
-        GICutter_initial_gim(pCutter, pMesh);
+        result = GICutter_initial_gim(pCutter, pMesh);
         break;
     case GI_CATMULL_CLARK_SUBDIVISION:
-        GICutter_catmull_clark(pCutter, pMesh);
-/*		break;
-    case GI_FACE_CLUSTERING:
-        GICutter_face_clustering(pCutter, pMesh);
-*/	}
+        result = GICutter_catmull_clark(pCutter, pMesh);
+		break;
+    //case GI_FACE_CLUSTERING:
+    //    GICutter_face_clustering(pCutter, pMesh);
+    default:
+        break;
+	}
+
+    return result;
 }
 
 /** \internal
