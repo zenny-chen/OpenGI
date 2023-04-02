@@ -389,7 +389,7 @@ GIAPI void          GIAPIENTRY giGetNonIndexedMesh(GIuint *vcount);
  */
 //GIAPI void          GIAPIENTRY giCutterParameterb(GIenum pname, GIboolean param);
 GIAPI void          GIAPIENTRY giCutterParameteri(GIenum pname, GIint param);
-//GIAPI void          GIAPIENTRY giCutterParameterf(GIenum pname, GIfloat param);
+//GIAPI GIint         GIAPIENTRY giCutterParameterf(GIenum pname, GIfloat param);
 GIAPI GIint         GIAPIENTRY giCut(void);
 /** \} */
 
